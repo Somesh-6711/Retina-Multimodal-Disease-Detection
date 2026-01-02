@@ -1,0 +1,12 @@
+torch
+torchvision
+timm                 # for EfficientNet / ViT backbones
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+opencv-python
+Pillow
+tqdm
+albumentations       # for strong image augmentations
