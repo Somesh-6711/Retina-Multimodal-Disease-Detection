@@ -58,13 +58,10 @@ logs/
 # OUTPUT IMAGES
 # -----------------------------
 # ignore large images by default
-outputs/**
-
-# BUT KEEP README IMAGES
-!outputs/fundus/gradcam/**
-!outputs/oct/gradcam/**
-!outputs/figures/**
-!outputs/readme_images/**
+# Large training artifacts (optional)
+outputs/fusion/
+outputs/logs/
+outputs/models/
 
 # -----------------------------
 # EDITORS
