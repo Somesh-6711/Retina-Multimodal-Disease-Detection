@@ -34,7 +34,7 @@ data/processed/
 # BUT KEEP METADATA FILES
 !data/**/*.txt
 !data/**/*.md
-!data/**/*.csv   # if you ever generate label summaries
+!data/**/*.csv
 
 # -----------------------------
 # MODEL WEIGHTS
@@ -49,19 +49,22 @@ checkpoints/
 weights/
 
 # -----------------------------
-# TRAINING OUTPUTS
+# TRAINING OUTPUTS (INTERNAL)
 # -----------------------------
 runs/
 logs/
 
 # -----------------------------
-# OUTPUT IMAGES
+# LARGE OUTPUT ARTIFACTS
 # -----------------------------
-# ignore large images by default
-# Large training artifacts (optional)
 outputs/fusion/
-outputs/logs/
 outputs/models/
+outputs/logs/
+
+# BUT KEEP VISUAL EXPLANATIONS
+!outputs/**/*.png
+!outputs/**/*.jpg
+!outputs/**/*.jpeg
 
 # -----------------------------
 # EDITORS

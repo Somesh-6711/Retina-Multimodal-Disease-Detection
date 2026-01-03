@@ -1,348 +1,246 @@
 # Multimodal Retina Disease Detection (Fundus + OCT Fusion)
 
-This project implements a **multimodal deep learning pipeline** for retinal disease detection using **fundus photographs** and **OCT B-scans**, closely mirroring the workflows used in real ophthalmology AI research labs.
+This project implements a **multimodal deep learning pipeline** for retinal disease detection using **fundus photographs** and **OCT B-scans**, mirroring how modern ophthalmology labs combine multiple imaging modalities in practice.
 
 We train three models:
 
-1️⃣ **Fundus-only CNN for diabetic retinopathy severity classification**  
-2️⃣ **OCT-only CNN for structural retinal disease classification**  
-3️⃣ **Fusion model combining both modalities for binary disease detection**
+1. 🩺 **Fundus-only CNN** for diabetic retinopathy (DR) severity classification  
+2. 👁 **OCT-only CNN** for structural retinal disease classification  
+3. 🔗 **Fusion model** that combines fundus + OCT embeddings for binary disease detection  
 
-The key idea:
-> 🧠 **Fundus shows surface vascular damage, OCT shows structural retinal layers — together they provide a stronger diagnostic signal than either alone.**
+> 🧠 **Fundus captures surface vascular damage, OCT captures retinal layer structure – together they provide a stronger diagnostic signal than either alone.**
 
 ---
 
 ## 📌 Dataset Sources
 
-### **Fundus (APTOS 2019 Diabetic Retinopathy Dataset)**
-- 3662 labelled color fundus photographs
+### 1️⃣ Fundus – APTOS 2019 Diabetic Retinopathy
+
+- 3662 labeled color fundus photographs  
 - 5-class DR severity scale:
+  - `0` – No DR  
+  - `1` – Mild  
+  - `2` – Moderate  
+  - `3` – Severe  
+  - `4` – Proliferative DR  
 
-0 – No DR
-1 – Mild
-2 – Moderate
-3 – Severe
-4 – Proliferative DR
+Fundus images are used to train the **DR severity classifier**.
 
+---
 
-### **OCT (Kermany 2018 Retinal OCT Dataset)**
-- Four OCT disease classes:
+### 2️⃣ OCT – Kermany 2018 Retinal OCT
 
-CNV
-DME
-DRUSEN
-NORMAL
+- Grayscale OCT B-scans  
+- 4 disease classes:
+  - `CNV`  
+  - `DME`  
+  - `DRUSEN`  
+  - `NORMAL`  
 
+OCT images are used to train the **OCT disease classifier** and to provide the second modality for fusion.
 
-> Note: datasets are **not from the same patients** — we align classes to build *virtual multimodal pairs* for fusion.
+> ⚠️ The fundus and OCT datasets are **not from the same patients**. For the fusion model, we align labels (normal vs disease) and create *virtual multimodal pairs*.
 
 ---
 
 ## 🧱 Pipeline Overview
 
-### **1️⃣ Fundus DR Classification (EfficientNet-B0)**
+```mermaid
+flowchart LR
+    F[Fundus image] --> FEnc[Fundus Encoder (EffNet-B0)]
+    O[OCT B-scan]   --> OEnc[OCT Encoder (ResNet-18)]
+    FEnc --> Z[Concatenate embeddings]
+    OEnc --> Z
+    Z --> Head[MLP Fusion Head]
+    Head --> Y[Normal vs Disease]
+```
 
-- Input: RGB fundus image  
-- Task: 5-class DR severity  
-- Loss: Cross-entropy  
-- Augmentation: flips, rotations, color jitter  
-- Implementation: `timm` + `PyTorch`
+Core steps:
 
-📈 **Validation Accuracy ≈ 0.81**
+1. Train fundus DR classifier
+
+2. Train OCT disease classifier
+
+3. Freeze both encoders and train a fusion head on top of concatenated embeddings
+
+4. Use Grad-CAM to visualize where each model is “looking”
+
+## 🩺 Model 1 – Fundus DR Classification (EfficientNet-B0)
+
+Backbone: tf_efficientnet_b0 (via timm)
+
+Input: RGB fundus image
+
+Task: 5-class DR severity
+
+Loss: Cross-entropy
+
+Augmentation: flips, rotations, brightness/contrast and color jitter
+
+Framework: PyTorch + timm + Albumentations
+
+Validation Accuracy: ~0.81
 
 Most confident on:
-✔ No DR  
-✔ Moderate DR  
+
+✅ No DR
+
+✅ Moderate DR
 
 More challenging:
-⚠ Severe / proliferative (rare classes)
 
----
+⚠ Severe / proliferative DR (class imbalance & subtle differences)
 
 ## 👁 Fundus Explainability (Grad-CAM)
 
-Grad-CAM highlights lesions such as:
+Grad-CAM is used to highlight lesions such as:
 
-- microaneurysms
-- hemorrhages
-- exudates
+microaneurysms
 
-<p align="center">
-<img src="outputs/fundus/gradcam/6733544ae7a6_true2_pred2_gradcam.png" width="450">
-</p>
+hemorrhages
 
-<p align="center">
-<i>Example Grad-CAM localization on a diabetic retinopathy fundus image</i>
-</p>
+exudates
 
----
+✅ Correct prediction example
+<p align="center"> <img src="outputs/fundus/gradcam/6733544ae7a6_true2_pred2_gradcam.png" width="450"> </p> <p align="center"> <i>Moderate DR – correctly classified (true = 2, pred = 2).</i> </p>
+⚠ Misclassification example
+<p align="center"> <img src="outputs/fundus/gradcam/e1fb532f55df_true3_pred4_gradcam.png" width="450"> </p> <p align="center"> <i>Severe DR – model over-grades to proliferative DR (true = 3, pred = 4).</i> </p>
 
-## **2️⃣ OCT Disease Classification (ResNet-18)**
+These visualizations help verify that the network is focusing on clinically plausible structures rather than artifacts.
 
-- Input: grayscale OCT B-scan  
-- Task: 4-class disease classification  
-- Classes: CNV, DME, DRUSEN, NORMAL  
-- Training on balanced subset of 3200 samples  
-- Validation set: 32 images  
+## 🧠 Model 2 – OCT Disease Classification (ResNet-18)
 
-📈 **Validation Accuracy ≈ 1.00**  
-(This dataset is relatively “clean” and separable)
+Backbone: resnet18
 
----
+Input: single-channel OCT B-scan
 
-## 🧠 OCT Explainability (Grad-CAM)
+Task: 4-class disease classification
 
-Grad-CAM highlights structural disruptions in retinal layers.
+CNV, DME, DRUSEN, NORMAL
 
-<p align="center">
-<img src="outputs/oct/gradcam/CNV-8598714-1_trueCNV_predCNV_gradcam.png" width="450">
-</p>
+Training set: balanced subset of 3200 images (max 800 per class)
 
-<p align="center">
-<i>Grad-CAM highlighting CNV lesion in OCT</i>
-</p>
+Validation set: 32 images (fast sanity-check set)
 
----
+Loss: Cross-entropy
 
-## **3️⃣ Multimodal Fusion Model**
+Validation Accuracy: ~1.00 on the small validation split
 
-We freeze both encoders:
-
-
-> Note: datasets are **not from the same patients** — we align classes to build *virtual multimodal pairs* for fusion.
-
----
-
-## 🧱 Pipeline Overview
-
-### **1️⃣ Fundus DR Classification (EfficientNet-B0)**
-
-- Input: RGB fundus image  
-- Task: 5-class DR severity  
-- Loss: Cross-entropy  
-- Augmentation: flips, rotations, color jitter  
-- Implementation: `timm` + `PyTorch`
-
-📈 **Validation Accuracy ≈ 0.81**
-
-Most confident on:
-✔ No DR  
-✔ Moderate DR  
-
-More challenging:
-⚠ Severe / proliferative (rare classes)
-
----
-
-## 👁 Fundus Explainability (Grad-CAM)
-
-Grad-CAM highlights lesions such as:
-
-- microaneurysms
-- hemorrhages
-- exudates
-
-<p align="center">
-<img src="outputs/fundus/gradcam/6733544ae7a6_true2_pred2_gradcam.png" width="450">
-</p>
-
-<p align="center">
-<i>Example Grad-CAM localization on a diabetic retinopathy fundus image</i>
-</p>
-
----
-
-## **2️⃣ OCT Disease Classification (ResNet-18)**
-
-- Input: grayscale OCT B-scan  
-- Task: 4-class disease classification  
-- Classes: CNV, DME, DRUSEN, NORMAL  
-- Training on balanced subset of 3200 samples  
-- Validation set: 32 images  
-
-📈 **Validation Accuracy ≈ 1.00**  
-(This dataset is relatively “clean” and separable)
-
----
+(The dataset is relatively clean and the classes are highly separable.)
 
 ## 🧠 OCT Explainability (Grad-CAM)
 
-Grad-CAM highlights structural disruptions in retinal layers.
+Grad-CAM highlights structural disruptions in retinal layers for different disease types.
 
-<p align="center">
-<img src="outputs/oct/gradcam/CNV-8598714-1_trueCNV_predCNV_gradcam.png" width="450">
-</p>
+Example – DME
+<p align="center"> <img src="outputs/oct/gradcam/DME-9583225-1_trueDME_predDME_gradcam.png" width="450"> </p> <p align="center"> <i>OCT Grad-CAM focusing on edema-related structural changes (DME).</i> </p>
+Example – CNV
+<p align="center"> <img src="outputs/oct/gradcam/CNV-8598714-1_trueCNV_predCNV_gradcam.png" width="450"> </p> <p align="center"> <i>OCT Grad-CAM highlighting CNV lesion region.</i> </p>
 
-<p align="center">
-<i>Grad-CAM highlighting CNV lesion in OCT</i>
-</p>
+## Model 3 – Multimodal Fusion Head
 
----
-
-## **3️⃣ Multimodal Fusion Model**
-
-We freeze both encoders:
+We first freeze the trained encoders:
 
 z_fundus = EfficientNet-B0 embedding
-z_oct = ResNet-18 embedding
+z_oct    = ResNet-18 embedding
 
 
-Then concatenate and train an **MLP classifier**:
+Then we concatenate them:
 
-z = concat(z_fundus , z_oct)
-
-
-### **Task**
-Binary classification:
-
-normal = DR grade 0 + OCT NORMAL
-disease = DR 1–4 + OCT CNV/DME/DRUSEN
+z = concat(z_fundus, z_oct)
 
 
-Dataset:
-- 3000 paired samples  
-- 2400 train / 600 validation  
+and train a small MLP classifier on top.
 
-📈 **Fusion Validation Accuracy = 0.995**
+## 📊 Result Summary
 
-| Model           | Modality        | Task                         | Validation Accuracy |
-|-----------------|-----------------|-----------------------------|---------------------|
-| Fundus-only     | Fundus          | 5-class DR                  | ~0.81               |
-| OCT-only        | OCT             | 4-class disease             | ~1.00 (n=32)        |
-| Fusion          | Fundus + OCT    | Binary normal vs disease    | **0.995**           |
+| Model              | Modality        | Task                         | Validation Accuracy |
+|--------------------|-----------------|-----------------------------|---------------------|
+| Fundus CNN         | Fundus          | 5-class DR severity         | ~0.81               |
+| OCT CNN            | OCT             | 4-class disease             | ~1.00 (n = 32)      |
+| Fusion MLP Head    | Fundus + OCT    | Binary normal vs disease    | **0.995**           |
 
-✔ Fusion outperforms fundus-only  
-✔ Fusion produces extremely robust binary screening performance  
-✔ Shows **complementary value of multimodal imaging**
+### Key Takeaways
+- ✅ **Fusion outperforms fundus-only screening**
+- 👁 **OCT captures structural pathology very strongly**
+- 🔗 **Multimodal imaging = stronger diagnostic signal**
+- 🏥 **Matches real-world retina clinic workflow**
 
----
+## 👁 Before → After Explainability — Markdown Code
+📸 Before → After: Model Explainability Views
 
-## 📸 Before → After (Explainability View)
-
-### Fundus: Raw → Grad-CAM
+## 👁 Fundus Explainability — Raw vs Grad-CAM
 
 <p align="center">
-  <img src="outputs/fundus/gradcam/e1fb532f55df_true3_pred4_gradcam.png" width="500">
+  <img src="outputs/fundus/gradcam/e1fb532f55df_true3_pred4_gradcam.png" width="520">
 </p>
-
----
-
-### OCT: Raw → Grad-CAM
 
 <p align="center">
-  <img src="outputs/oct/gradcam/DME-9583225-1_trueDME_predDME_gradcam.png" width="500">
+  <i>
+  Grad-CAM overlay highlighting DR-related vascular abnormalities on fundus photography.
+  (True label = Severe DR, Predicted = Proliferative DR)
+  </i>
 </p>
 
----
 
-## 🧪 Training Logs (Highlights)
+## 🧠 OCT Explainability — Raw vs Grad-CAM
 
-### Fundus (EffNet-B0)
-Best validation accuracy: 0.8131
+<p align="center">
+  <img src="outputs/oct/gradcam/DME-9583225-1_trueDME_predDME_gradcam.png" width="520">
+</p>
 
+<p align="center">
+  <i>
+  Grad-CAM visualization showing model attention on macular edema-related structural changes.
+  (True label = DME, Predicted = DME)
+  </i>
+</p>
 
-### Fusion (MLP Head)
-Best validation accuracy: 0.9950
-
-
-Macro-F1 for both classes ≈ **0.99**
-
----
 
 ## 📦 Tech Stack
 
-- **PyTorch**
-- **timm**
-- **Albumentations**
-- **scikit-learn**
-- **Grad-CAM**
-- **NumPy / Pandas**
-- **Matplotlib**
+PyTorch – core deep learning framework
 
----
+timm – modern CNN backbones (EfficientNet, ResNet)
 
-## 👩‍⚕️ Clinical Relevance
+Albumentations – image augmentation
 
-- Fundus = vascular & surface biomarkers  
-- OCT = retinal microstructure  
-- Fusion ≈ clinical workflow  
-- Explainability builds trust  
-- Binary disease vs normal supports **screening pipelines**
+scikit-learn – metrics & utilities
 
-This project demonstrates:
+Grad-CAM – model explainability
 
-✔ multimodal medical AI  
-✔ deep learning engineering  
-✔ explainability  
-✔ clinical-style evaluation  
-✔ reproducible pipeline design  
-
----
-
-## 🚀 Future Extensions
-
-- Train full OCT dataset
-- Multi-class fusion (not just binary)
-- Add SHAP interpretability
-- Patient-level aggregation
-- Deploy via Streamlit
-
----
-
-## 📁 Repo Structure
-
-
-Macro-F1 for both classes ≈ **0.99**
-
----
-
-## 📦 Tech Stack
-
-- **PyTorch**
-- **timm**
-- **Albumentations**
-- **scikit-learn**
-- **Grad-CAM**
-- **NumPy / Pandas**
-- **Matplotlib**
-
----
+NumPy / Pandas / Matplotlib – data & visualization
 
 ## 👩‍⚕️ Clinical Relevance
 
-- Fundus = vascular & surface biomarkers  
-- OCT = retinal microstructure  
-- Fusion ≈ clinical workflow  
-- Explainability builds trust  
-- Binary disease vs normal supports **screening pipelines**
+Fundus = vascular & surface biomarkers
+
+OCT = retinal microstructure & macular fluid
+
+Fusion ≈ how ophthalmologists combine modalities when making decisions
+
+Grad-CAM provides visual evidence for where the network is focusing, which is crucial for trust in medical AI
+
+Binary disease vs normal supports screening workflows and referral triage
 
 This project demonstrates:
 
-✔ multimodal medical AI  
-✔ deep learning engineering  
-✔ explainability  
-✔ clinical-style evaluation  
-✔ reproducible pipeline design  
+Multimodal medical AI
 
----
+Deep learning engineering end-to-end
+
+Explainability and rigorous evaluation
+
+Reproducible, research-style pipeline design
 
 ## 🚀 Future Extensions
 
-- Train full OCT dataset
-- Multi-class fusion (not just binary)
-- Add SHAP interpretability
-- Patient-level aggregation
-- Deploy via Streamlit
+Train on the full OCT dataset and larger val/test splits
 
----
+Multiclass fusion (joint DR grade + OCT subtype prediction)
 
-## 📁 Repo Structure
+SHAP / Integrated Gradients for richer interpretability
 
-data/
-outputs/
-src/
-models/
+Patient-level aggregation and calibration analysis
 
-
----
+Lightweight demo app (Streamlit / FastAPI) for clinicians
