@@ -71,23 +71,18 @@ flowchart LR
 ## 🩺 Model 1 – Fundus DR Classification (EfficientNet-B0)
 
 Backbone: tf_efficientnet_b0 (via timm)
-
 Input: RGB fundus image
-
 Task: 5-class DR severity
-
 Loss: Cross-entropy
-
 Augmentation: flips, rotations, brightness/contrast and color jitter
 
 Framework: PyTorch + timm + Albumentations
 
-Validation Accuracy: ~0.81
+*Validation Accuracy: ~0.81*
 
 Most confident on:
 
 ✅ No DR
-
 ✅ Moderate DR
 
 More challenging:
@@ -161,6 +156,53 @@ Attention localizes to abnormal vascular protrusion into retinal layers.
 (True = CNV, Predicted = CNV)
 </i>
 </p>
+
+---
+## 🔍 Before vs After — Model Explainability View
+
+To help visualize what the models learn, we compare the **raw medical image** with the
+**Grad-CAM heatmap overlay**, showing the retinal regions most important for the prediction.
+
+---
+
+### 🩺 Fundus Image — Raw vs Grad-CAM
+
+<p align="center">
+  <img src="outputs/fundus_before_after.png" width="720">
+</p>
+
+<p align="center">
+<i>
+Left: Original diabetic-retinopathy fundus photograph  
+Right: Grad-CAM highlighting lesion-rich vascular regions
+</i>
+</p>
+
+---
+
+### 👁 OCT Scan — Raw vs Grad-CAM
+
+<p align="center">
+  <img src="outputs/oct_before_after.png" width="720">
+</p>
+
+<p align="center">
+<i>
+Left: Original OCT B-scan  
+Right: Grad-CAM focusing on structural abnormalities within retinal layers
+</i>
+</p>
+
+---
+
+### 🧠 Why “Before vs After” Matters
+
+These comparisons demonstrate that:
+
+✔ The models attend to clinically meaningful anatomy  
+✔ Attention differs by modality (vascular vs structural)  
+✔ Interpretability supports **trustworthy clinical AI**  
+✔ Results mirror how ophthalmologists review imaging
 
 ---
 
