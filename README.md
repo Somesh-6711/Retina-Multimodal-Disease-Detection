@@ -55,7 +55,7 @@ flowchart LR
     Head --> Y[Normal vs Disease]
 ```
 
-Core steps:
+### Core steps:
 
 1. Train fundus DR classifier
 
@@ -91,66 +91,86 @@ More challenging:
 
 ⚠ Severe / proliferative DR (class imbalance & subtle differences)
 
-## 👁 Fundus Explainability (Grad-CAM)
+## 👁 Explainability with Grad-CAM
 
-Grad-CAM is used to highlight lesions such as:
+Grad-CAM is used to visualize **where the network is focusing inside the image** when making a prediction.  
+This helps verify that the model is learning **clinically meaningful retinal features**, such as:
 
-microaneurysms
+- microaneurysms  
+- hemorrhages  
+- exudates  
+- retinal layer disruptions  
 
-hemorrhages
+Explainability is critical in medical AI — it improves transparency, trust, and clinical interpretability.
 
-exudates
+---
 
-✅ Correct prediction example
-<p align="center"> <img src="outputs/fundus/gradcam/6733544ae7a6_true2_pred2_gradcam.png" width="450"> </p> <p align="center"> <i>Moderate DR – correctly classified (true = 2, pred = 2).</i> </p>
-⚠ Misclassification example
-<p align="center"> <img src="outputs/fundus/gradcam/e1fb532f55df_true3_pred4_gradcam.png" width="450"> </p> <p align="center"> <i>Severe DR – model over-grades to proliferative DR (true = 3, pred = 4).</i> </p>
+## 🩺 Fundus Explainability — Correct vs Misclassified Examples
 
-These visualizations help verify that the network is focusing on clinically plausible structures rather than artifacts.
+### ✅ Correct Prediction — Moderate DR
+<p align="center">
+  <img src="outputs/fundus/gradcam/6733544ae7a6_true2_pred2_gradcam.png" width="480">
+</p>
 
-## 🧠 Model 2 – OCT Disease Classification (ResNet-18)
+<p align="center">
+<i>
+The network highlights vascular abnormalities consistent with Moderate DR.  
+(True = 2, Predicted = 2)
+</i>
+</p>
 
-Backbone: resnet18
+### ⚠ Misclassification — Severe DR
+<p align="center">
+  <img src="outputs/fundus/gradcam/e1fb532f55df_true3_pred4_gradcam.png" width="480">
+</p>
 
-Input: single-channel OCT B-scan
+<p align="center">
+<i>
+The model over-grades the case to Proliferative DR, likely due to dense lesion regions.  
+(True = 3, Predicted = 4)
+</i>
+</p>
 
-Task: 4-class disease classification
+---
 
-CNV, DME, DRUSEN, NORMAL
+## 🧠 OCT Explainability — Disease-Specific Attention
 
-Training set: balanced subset of 3200 images (max 800 per class)
+### 🌊 Diabetic Macular Edema (DME)
+<p align="center">
+  <img src="outputs/oct/gradcam/DME-9583225-1_trueDME_predDME_gradcam.png" width="480">
+</p>
 
-Validation set: 32 images (fast sanity-check set)
+<p align="center">
+<i>
+Grad-CAM highlights macular thickening and fluid-related structural change.  
+(True = DME, Predicted = DME)
+</i>
+</p>
 
-Loss: Cross-entropy
+### 🩸 Choroidal Neovascularization (CNV)
+<p align="center">
+  <img src="outputs/oct/gradcam/CNV-8598714-1_trueCNV_predCNV_gradcam.png" width="480">
+</p>
 
-Validation Accuracy: ~1.00 on the small validation split
+<p align="center">
+<i>
+Attention localizes to abnormal vascular protrusion into retinal layers.  
+(True = CNV, Predicted = CNV)
+</i>
+</p>
 
-(The dataset is relatively clean and the classes are highly separable.)
+---
 
-## 🧠 OCT Explainability (Grad-CAM)
+## 🧪 Why This Matters
 
-Grad-CAM highlights structural disruptions in retinal layers for different disease types.
+These visualizations:
 
-Example – DME
-<p align="center"> <img src="outputs/oct/gradcam/DME-9583225-1_trueDME_predDME_gradcam.png" width="450"> </p> <p align="center"> <i>OCT Grad-CAM focusing on edema-related structural changes (DME).</i> </p>
-Example – CNV
-<p align="center"> <img src="outputs/oct/gradcam/CNV-8598714-1_trueCNV_predCNV_gradcam.png" width="450"> </p> <p align="center"> <i>OCT Grad-CAM highlighting CNV lesion region.</i> </p>
+✔ confirm the network is learning disease-relevant features  
+✔ provide transparency for clinicians & researchers  
+✔ reduce “black-box AI” concerns  
+✔ mirror real ophthalmology AI workflows  
 
-## Model 3 – Multimodal Fusion Head
-
-We first freeze the trained encoders:
-
-z_fundus = EfficientNet-B0 embedding
-z_oct    = ResNet-18 embedding
-
-
-Then we concatenate them:
-
-z = concat(z_fundus, z_oct)
-
-
-and train a small MLP classifier on top.
+> 🧠 In this project, explainability is treated as a **first-class requirement**, not an optional extra.
 
 ## 📊 Result Summary
 
@@ -166,35 +186,6 @@ and train a small MLP classifier on top.
 - 🔗 **Multimodal imaging = stronger diagnostic signal**
 - 🏥 **Matches real-world retina clinic workflow**
 
-## 👁 Before → After Explainability — Markdown Code
-📸 Before → After: Model Explainability Views
-
-## 👁 Fundus Explainability — Raw vs Grad-CAM
-
-<p align="center">
-  <img src="outputs/fundus/gradcam/e1fb532f55df_true3_pred4_gradcam.png" width="520">
-</p>
-
-<p align="center">
-  <i>
-  Grad-CAM overlay highlighting DR-related vascular abnormalities on fundus photography.
-  (True label = Severe DR, Predicted = Proliferative DR)
-  </i>
-</p>
-
-
-## 🧠 OCT Explainability — Raw vs Grad-CAM
-
-<p align="center">
-  <img src="outputs/oct/gradcam/DME-9583225-1_trueDME_predDME_gradcam.png" width="520">
-</p>
-
-<p align="center">
-  <i>
-  Grad-CAM visualization showing model attention on macular edema-related structural changes.
-  (True label = DME, Predicted = DME)
-  </i>
-</p>
 
 
 ## 📦 Tech Stack
