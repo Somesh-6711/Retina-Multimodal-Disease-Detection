@@ -82,7 +82,7 @@ Augmentation: flips, rotations, brightness/contrast and color jitter
 
 Framework: PyTorch + timm + Albumentations
 
-*Validation Accuracy: ~0.81*
+**Validation Accuracy: ~0.81**
 
 Most confident on:
 
