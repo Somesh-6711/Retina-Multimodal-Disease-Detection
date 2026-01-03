@@ -71,9 +71,13 @@ flowchart LR
 ## 🩺 Model 1 – Fundus DR Classification (EfficientNet-B0)
 
 Backbone: tf_efficientnet_b0 (via timm)
+
 Input: RGB fundus image
+
 Task: 5-class DR severity
+
 Loss: Cross-entropy
+
 Augmentation: flips, rotations, brightness/contrast and color jitter
 
 Framework: PyTorch + timm + Albumentations
@@ -83,6 +87,7 @@ Framework: PyTorch + timm + Albumentations
 Most confident on:
 
 ✅ No DR
+
 ✅ Moderate DR
 
 More challenging:
@@ -92,6 +97,7 @@ More challenging:
 ## 👁 Explainability with Grad-CAM
 
 Grad-CAM is used to visualize **where the network is focusing inside the image** when making a prediction.  
+
 This helps verify that the model is learning **clinically meaningful retinal features**, such as:
 
 - microaneurysms  
