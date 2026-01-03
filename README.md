@@ -2,6 +2,8 @@
 
 This project implements a **multimodal deep learning pipeline** for retinal disease detection using **fundus photographs** and **OCT B-scans**, mirroring how modern ophthalmology labs combine multiple imaging modalities in practice.
 
+---
+
 We train three models:
 
 1. 🩺 **Fundus-only CNN** for diabetic retinopathy (DR) severity classification  
@@ -45,7 +47,7 @@ OCT images are used to train the **OCT disease classifier** and to provide the s
 
 ## 🧱 Pipeline Overview
 
-```mermaid
+
 flowchart LR
     F[Fundus image] --> FEnc[Fundus Encoder (EffNet-B0)]
     O[OCT B-scan]   --> OEnc[OCT Encoder (ResNet-18)]
