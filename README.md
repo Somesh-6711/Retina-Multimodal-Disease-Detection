@@ -47,7 +47,7 @@ OCT images are used to train the **OCT disease classifier** and to provide the s
 
 ## 🧱 Pipeline Overview
 
-
+```
 flowchart LR
     F[Fundus image] --> FEnc[Fundus Encoder (EffNet-B0)]
     O[OCT B-scan]   --> OEnc[OCT Encoder (ResNet-18)]
@@ -55,6 +55,7 @@ flowchart LR
     OEnc --> Z
     Z --> Head[MLP Fusion Head]
     Head --> Y[Normal vs Disease]
+```
 
 
 ### Core steps:
