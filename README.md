@@ -53,7 +53,7 @@ flowchart LR
     OEnc --> Z
     Z --> Head[MLP Fusion Head]
     Head --> Y[Normal vs Disease]
-```
+
 
 ### Core steps:
 
